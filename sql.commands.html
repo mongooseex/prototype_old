@@ -1,0 +1,10 @@
+sql commands:
+
+
+Create table:
+
+create table users (id bigint not null, username varchar(32) not null, password varchar(256) not null, email varchar(128) not null, signupDate date not null, lastLoginDate date not null, verifiedDate date, isVerified bit(1) not null);
+
+
+alter table users
+add primary key (id);
