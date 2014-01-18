@@ -8,29 +8,50 @@
 	"buffers":
 	[
 		{
-			"contents": "\n\nStuff to get off the ground.\n\n\n1) Account Creation.\n	- Email, username + password. \n	- Demographics (birthdate, gender)\n	- Maybe one day the ability to add a 'Pretty Name'\n\n2) Log in.\n\n\n3) Show homepage.\n\n\n4) Create event.\n\n\n5) Discover events.\n\n\n6) Signup for events.\n\n\n\n\n\n\n\n\n",
 			"file": "ground.rules.html",
-			"file_size": 0,
-			"file_write_time": 130344808630754425,
 			"settings":
 			{
-				"buffer_size": 279,
+				"buffer_size": 768,
 				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "web/create-account.html",
+			"settings":
+			{
+				"buffer_size": 206,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"contents": "sql commands:\n\n\n-------------------------------------------------------------------------------------\n\n\nCreate table:\n\ncreate table users (id bigint not null, username varchar(32) not null, password varchar(256) not null, email varchar(128) not null, signupDate date not null, lastLoginDate date not null, verifiedDate date, isVerified bit(1) not null);\n\n\nalter table users\nadd primary key (id);\n\n\n-------------------------------------------------------------------------------------\n\n\nsave database\n\nmysqldump -u [username] -p[password] [databasename] > [path]/mongoosex.sql\n\n\n-------------------------------------------------------------------------------------",
+			"file": "sql.commands.html",
+			"file_size": -1,
+			"file_write_time": -1,
+			"settings":
+			{
+				"buffer_size": 663,
+				"line_ending": "Windows",
+				"name": "sql commands:"
 			}
 		}
 	],
 	"build_system": "",
 	"command_palette":
 	{
-		"height": 392.0,
+		"height": 242.0,
 		"selected_items":
 		[
+			[
+				"html",
+				"Set Syntax: HTML"
+			],
 			[
 				"Package Control",
 				"Package Control: Install Package"
 			]
 		],
-		"width": 400.0
+		"width": 512.0
 	},
 	"console":
 	{
@@ -85,7 +106,7 @@
 	"groups":
 	[
 		{
-			"selected": 0,
+			"selected": 1,
 			"sheets":
 			[
 				{
@@ -94,15 +115,43 @@
 					"semi_transient": false,
 					"settings":
 					{
-						"buffer_size": 279,
+						"buffer_size": 768,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								120,
-								120
+								31,
+								31
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/HTML/HTML.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "web/create-account.html",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 206,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								206
 							]
 						],
 						"settings":
@@ -114,6 +163,35 @@
 						"zoom_level": 1.0
 					},
 					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "sql.commands.html",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 663,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								15,
+								15
+							]
+						],
+						"settings":
+						{
+							"auto_name": "sql commands:",
+							"syntax": "Packages/HTML/HTML.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
 					"type": "text"
 				}
 			]
