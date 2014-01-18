@@ -15,3 +15,9 @@ add primary key (id);
 save database
 
 mysqldump -u [username] -p[password] [databasename] > [path]/mongoosex.sql
+
+
+load database
+
+create database [databasename]
+mysql -u root -p -h localhost mongoosex < mongoosex.sql
