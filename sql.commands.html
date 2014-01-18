@@ -8,3 +8,10 @@ create table users (id bigint not null, username varchar(32) not null, password 
 
 alter table users
 add primary key (id);
+
+
+
+
+save database
+
+mysqldump -u [username] -p[password] [databasename] > [path]/mongoosex.sql
