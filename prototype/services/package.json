@@ -1,7 +1,7 @@
 {
         "name": "mongoosex-prototype-services",
         "version": "0.0.0",
-        "description": "Kitchen Sink App of restify",
+        "description": "prototype service layer for mongoosex",
         "main": "server.js",
         "dependencies": {
 
@@ -10,8 +10,7 @@
                 "restify": "2.6.x"
         },
         "scripts": {
-                "start": "node main.js 2>&1 | bunyan",
-                "test": "nodeunit test"
+
         },
         "author": "Mike Barone",
         "license": "MIT"
