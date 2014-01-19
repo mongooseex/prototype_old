@@ -9,4 +9,4 @@
 *.sublime-workspace
 
 # services
-/services/node_modules
+prototype/services/node_modules
