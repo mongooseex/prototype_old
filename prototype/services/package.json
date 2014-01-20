@@ -1,17 +1,20 @@
 {
-        "name": "mongoosex-prototype-services",
-        "version": "0.0.0",
-        "description": "prototype service layer for mongoosex",
-        "main": "server.js",
-        "dependencies": {
+    "name": "mongoosex-prototype-services",
+    "version": "0.0.0",
+    "description": "prototype service layer for mongoosex",
+    "main": "server.js",
+    "dependencies": {
+        "restify": "2.6.x",
+        "lodash": "2.4.x",
+        "sql": "0.35.x",
+        "any-db-mysql": "2.1.x"
+    },
+    "devDependencies": {
 
-        },
-        "devDependencies": {
-                "restify": "2.6.x"
-        },
-        "scripts": {
+    },
+    "scripts": {
 
-        },
-        "author": "Mike Barone",
-        "license": "MIT"
+    },
+    "author": "mb",
+    "license": "MIT" 
 }
