@@ -17,8 +17,13 @@ function completeRequest(db, res, code, desc, cont) {
 
 function createAndReturn(db, res, accInput) {
 
-  var signupDate = new Date();
-  var addUserCmd = users
+  var signupDate
+    , addUserCmd
+    , getUserQuery
+    ;
+
+  signupDate = new Date();
+  addUserCmd = users
     .insert(
       users.username.value(accInput.username.toLowerCase()),
       users.password.value(accInput.password),
@@ -29,7 +34,7 @@ function createAndReturn(db, res, accInput) {
     )
     .toQuery();
 
-  var getUserQuery = users
+  getUserQuery = users
     .select(
       users.id, users.username, users.email, users.isVerified
     )
@@ -72,10 +77,12 @@ rMan
       // takes: { username: '', password: '', email: '' }
 
       var accInput = req.body
+        , newUser
+        , existsQuery
         , db
         ;
 
-      var newUser = _.reduce(userProto, function (result, v, key) {
+      newUser = _.reduce(userProto, function (result, v, key) {
         var value = accInput[key];
 
         if (_.isUndefined(value)) return result;
@@ -86,7 +93,7 @@ rMan
 
       console.log(newUser);
 
-      var existsQuery = users.select(users.username, users.email)
+      existsQuery = users.select(users.username, users.email)
         .from(users)
         .where(
           users.username.equals(newUser.username.toLowerCase())
@@ -147,7 +154,7 @@ rMan
       var authQuery
         , db
         , credentials = req.body
-        , 
+        ; 
 
       authQuery = users
         .select(
