@@ -7,7 +7,7 @@
         "restify": "2.6.x",
         "lodash": "2.4.x",
         "sql": "0.35.x",
-        "any-db-mysql": "2.1.x"
+        "mysql": "2.0.1"
     },
     "devDependencies": {
 

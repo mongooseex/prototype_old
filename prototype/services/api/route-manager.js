@@ -1,26 +1,49 @@
 
-var _ = require('lodash') 
-	, routeList = []
-  ;
+function addRoute(routeList, route) {
+	routeList.push(route);
+	return routeList;
+}
 
-exports.add = function addRoute(r) {
-	routeList.push(r);
-	return this;
-};
+function activateRoutes(routeList, restifyServer) {
+	for (var i = 0, l = routeList.length; i < l; i += 1) {
+		var r = routeList[i];
 
-exports.activate = function activateRoutes(server) {
-	_(routeList).forEach(function (r) {
 		switch (r.method) {
-			case 'get': server.get(r.route, r.handler);
+			case 'get': 
+				restifyServer.get(r.route, r.handler);
 				break;
-			case 'post': server.post(r.route, r.handler);
+			case 'post': 
+				restifyServer.post(r.route, r.handler);
 				break;
-			case 'put': server.put(r.route, r.handler);
+			case 'put': 
+				restifyServer.put(r.route, r.handler);
 				break;
-			case 'delete': server.delete(r.route, r.handler)
+			case 'delete': 
+				restifyServer.delete(r.route, r.handler)
 				break;
+			default:
+				throw new Error('unsupported method specified');
 		}
-	});
+	}	
 
-	return this;
+	return restifyServer;
+}
+
+// -------
+// exports
+// -------
+
+exports.createManager = function createManager() {
+	var routeList = [];
+
+	return {
+		add: function instanceAddRoute(r) {
+			addRoute(routeList, r);
+			return this;
+		},
+		activate: function instanceActivateRoutes(server) {
+			activateRoutes(routeList, server);
+			return this;
+		}
+	};	
 };

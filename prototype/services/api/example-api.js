@@ -1,5 +1,5 @@
 
-var routeMan = require('./route-manager')
+var routeMan = require('./route-manager').createManager()
 	;
 
 routeMan
@@ -8,6 +8,7 @@ routeMan
 		route: '/api/example/hello/:name',
 		handler: function exampleHelloGetHandler(req, res, next) {
 			res.send('hello, ' + req.params.name);
+			return next();
 		}
 	})
 	.add({
@@ -16,6 +17,7 @@ routeMan
 		handler: function exampleSayFromPostHandler(req, res, next) {
 			var responseText = req.params.from + ': ' + req.body;
 			res.send(responseText);
+			return next();
 		}
 	});
 

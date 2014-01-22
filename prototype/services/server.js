@@ -1,7 +1,7 @@
 
 var restify = require('restify')
 	, exampleApi = require('./api/example-api')
-  , userApi = require('./api/user-api')
+  , accApi = require('./api/accounts-api')
   ;
 
 var server = restify.createServer({
@@ -10,14 +10,11 @@ var server = restify.createServer({
 })
 
 // setup server
+server.use(restify.bodyParser());
 
-server.use(restify.bodyParser({ mapParams: false }));
-
-// example
-// server.get(exampleApi.hello.route, exampleApi.hello.handler);
+// active routes
 exampleApi.activate(server);
+accApi.activate(server);
 
-// user
-//server.get(userApi
 
 server.listen(8888);
