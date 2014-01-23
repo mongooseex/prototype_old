@@ -7,6 +7,62 @@ var appSettings = require('../lib/app-settings')
   , _ = require('lodash')
   ;
 
+// -----------------
+// query creation
+// -----------------
+
+function getAddUserCmdQuery(currentDate, acc) {
+  var q = users
+    .insert(
+      users.username.value(acc.username.toLowerCase()),
+      users.password.value(acc.password),
+      users.email.value(acc.email.toLowerCase()),
+      users.signupDate.value(currentDate),
+      users.lastLoginDate.value(currentDate),
+      users.isVerified.value(false)
+    )
+    .toQuery();  
+
+    return q;
+}
+
+function getUserByUsernameQuery(username, password) {
+  var q = users
+    .select(
+      users.id, users.username, users.email, users.isVerified
+    )
+    .from(users)
+    .where(
+      users.username.equals(username.toLowerCase())
+    );
+
+    if (password) {
+      q.and(users.password.equals(password));
+    }
+
+    q = q.toQuery();  
+
+  return q;
+}
+
+function getUserByUsernameOrEmailQuery(username, email) {
+  var q = users.select(users.username, users.email)
+    .from(users)
+    .where(
+      users.username.equals(username.toLowerCase())
+    )
+    .or (
+      users.email.equals(email.toLowerCase())
+    )
+    .toQuery();
+
+  return q;
+}
+
+// -------------
+// api heplers
+// -------------
+
 function completeRequest(db, res, code, desc, cont) {
   res.send(code, {
     description: desc,
@@ -15,34 +71,26 @@ function completeRequest(db, res, code, desc, cont) {
   db.end();
 }
 
-function createAndReturn(db, res, accInput) {
-
-  var signupDate
-    , addUserCmd
-    , getUserQuery
+function getSignupErrorMsg(row, user) {
+  var u = row.username.toLowerCase()
+    , e = row.email.toLowerCase()
+    , msg = 'unknown conflict'
     ;
 
-  signupDate = new Date();
-  addUserCmd = users
-    .insert(
-      users.username.value(accInput.username.toLowerCase()),
-      users.password.value(accInput.password),
-      users.email.value(accInput.email.toLowerCase()),
-      users.signupDate.value(signupDate),
-      users.lastLoginDate.value(signupDate),
-      users.isVerified.value(false)
-    )
-    .toQuery();
+  if (u === user.username.toLowerCase()) {
+    msg = 'this username already exists';
+  } else if (e === user.email.toLowerCase()) {
+    msg = 'a user already had this email account';
+  }  
 
-  getUserQuery = users
-    .select(
-      users.id, users.username, users.email, users.isVerified
-    )
-    .from(users)
-    .where(
-      users.username.equals(accInput.username.toLowerCase())
-    )
-    .toQuery();
+  return msg;
+}
+
+function createAndReturn(db, res, accInput) {
+
+  var addUserCmd = getAddUserCmdQuery(new Date(), accInput)
+    , getUserQuery = getUserByUsernameQuery(accInput.username.toLowerCase())
+    ;
 
   db.query(addUserCmd.text, addUserCmd.values, 
     function execInsert (err) {
@@ -60,13 +108,18 @@ function createAndReturn(db, res, accInput) {
           }    
 
           var result = rows[0];
-          result.isVerified = (result.isVerified.readInt8(0) == 0) ? false : true;  
-          completeRequest(db, res, 201, 'created', result);
+          result.isVerified = (result.isVerified.readInt8(0) == 0) 
+            ? false 
+            : true;  
 
+          completeRequest(db, res, 201, 'created', result);
         });            
     });  
 }
 
+// ---------
+// routes
+// ---------
 
 rMan
   .add({
@@ -91,17 +144,9 @@ rMan
         return result;
       }, { })
 
-      console.log(newUser);
-
-      existsQuery = users.select(users.username, users.email)
-        .from(users)
-        .where(
-          users.username.equals(newUser.username.toLowerCase())
-        )
-        .or (
-          users.email.equals(newUser.email.toLowerCase())
-        )
-        .toQuery();
+      existsQuery = getUserByUsernameOrEmailQuery(
+        accInput.username, accInput.email
+      );
 
       db = mysql.createConnection(appSettings.connectionStrings.sql.users);
       db.connect(function connectDb(err) {
@@ -120,19 +165,9 @@ rMan
             }
 
             if (rows && rows.length > 0) {
-
-              var u = rows[0].username.toLowerCase()
-                , e = rows[0].email.toLowerCase()
-                , msg = 'unknown conflict'
-                ;
-
-              if (u === newUser.username.toLowerCase()) {
-                msg = 'this username already exists';
-              } else if (e === newUser.email.toLowerCase()) {
-                msg = 'a user already had this email account';
-              }
-
-              completeRequest(db, res, 409, 'conflict', msg);
+              completeRequest(
+                db, res, 409, 'conflict', getSignupErrorMsg(rows[0], newUser)
+              );
               return;
             }
 
@@ -151,21 +186,14 @@ rMan
 
       // takes: { username: '', password: '' }
 
-      var authQuery
+      var getUserQuery
         , db
         , credentials = req.body
         ; 
 
-      authQuery = users
-        .select(
-          users.id, users.username, users.email, users.isVerified
-        )
-        .from(users)
-        .where(
-          users.username.equals(credentials.username.toLowerCase()),
-          users.password.equals(credentials.password)
-        )
-        .toQuery(); 
+      getUserQuery = getUserByUsernameQuery(
+        credentials.username, credentials.password
+      );
 
       db = mysql.createConnection(appSettings.connectionStrings.sql.users);
       db.connect(function connectDb(err) {
@@ -175,8 +203,8 @@ rMan
           return;
         }
 
-        db.query(authQuery.text, authQuery.values,
-          function authQuery(err, rows) {
+        db.query(getUserQuery.text, getUserQuery.values,
+          function getUserQuery(err, rows) {
 
             if (err) {
               completeRequest(db, res, 500, 'error', err);
@@ -189,7 +217,10 @@ rMan
             }
 
             var result = rows[0];
-            result.isVerified = (result.isVerified.readInt8(0) == 0) ? false : true;  
+            result.isVerified = (result.isVerified.readInt8(0) == 0) 
+              ? false 
+              : true;  
+
             completeRequest(db, res, 200, 'authorized', result);
             return;
           });
@@ -200,6 +231,8 @@ rMan
     }
   });
 
-  exports.activate = function activateAccRoutes(server) {
-    rMan.activate(server);
-  };
+  // -----------
+  // exports
+  // -----------
+
+  exports.activate = rMan.activate;
