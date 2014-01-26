@@ -1,6 +1,6 @@
 
 var appSettings = require('../lib/app-settings')
-  , rMan = require('./route-manager').createManager()
+  , routes = require('./route-manager').createManager()
   , users = require('../lib/users/user-model').table
   , userModel = require('../lib/users/user-model').model
   , mysql = require('mysql')
@@ -26,23 +26,27 @@ function getAddUserCmdQuery(currentDate, acc) {
     return q;
 }
 
+function getUserByIdQuery(id) {
+  var q = users
+    .select(users.id, users.username, users.email, users.isVerified)
+    .from(users)
+    .where(users.id.equals(id))
+    .toQuery();
+
+    return q;
+}
+
 function getUserByUsernameQuery(username, password) {
   var q = users
-    .select(
-      users.id, users.username, users.email, users.isVerified
-    )
+    .select(users.id, users.username, users.email, users.isVerified)
     .from(users)
-    .where(
-      users.username.equals(username.toLowerCase())
-    );
+    .where(users.username.equals(username.toLowerCase()));
 
     if (password) {
       q.and(users.password.equals(password));
     }
 
-    q = q.toQuery();  
-
-  return q;
+    return q.toQuery();  
 }
 
 function getUserByUsernameOrEmailQuery(username, email) {
@@ -121,7 +125,7 @@ function createAndReturn(db, res, userInput) {
 // routes
 // ---------
 
-rMan
+routes
   .add({
     method: 'post',
     route: '/api/users',
@@ -217,16 +221,60 @@ rMan
             }
 
             var result = rows[0];
-            result.isVerified = (result.isVerified.readInt8(0) == 0) 
+            result.isVerified = (result.isVerified.readInt8(0) === 0) 
               ? false 
               : true;  
 
             completeRequest(db, res, 200, 'authorized', result);
             return;
           });
-
       });               
   
+      return next();
+    }
+  })
+  .add({
+    method: 'get',
+    route: 'api/users/:id',
+    handler: function (req, res, next) {
+
+      // takes id in route
+
+      var getUserQuery = getUserByIdQuery(req.params.id)
+        , user
+        ;
+
+      db = mysql.createConnection(appSettings.connectionStrings.sql.users);
+      db.connect(function connectDb(err) {
+
+        if (err) {
+          completeRequest(db, res, 500, 'error', err);
+          return;
+        }
+
+        db.query(getUserQuery.text, getUserQuery.values,
+          function getUserQuery(err, rows) {
+
+            if (err) {
+              completeRequest(db, res, 500, 'error', err);
+              return;
+            }
+
+            if (!rows || rows.length < 1) {
+              completeRequest(db, res, 404, 'user not found', null);
+              return;
+            }
+
+            user = rows[0];
+            user.isVerified = (user.isVerified.readInt8(0) === 0)
+              ? false
+              : true;
+
+            completeRequest(db, res, 200, 'user found', user);
+            return;
+          });
+      });
+
       return next();
     }
   });
@@ -235,4 +283,4 @@ rMan
   // exports
   // -----------
 
-  exports.activate = rMan.activate;
+  exports.activate = routes.activate;
