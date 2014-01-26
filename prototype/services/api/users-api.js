@@ -1,8 +1,8 @@
 
 var appSettings = require('../lib/app-settings')
   , rMan = require('./route-manager').createManager()
-  , users = require('../lib/users/users-table')
-  , userProto = require('../lib/users/user-model')
+  , users = require('../lib/users/user-model').table
+  , userModel = require('../lib/users/user-model').model
   , mysql = require('mysql')
   , _ = require('lodash')
   ;
@@ -86,10 +86,10 @@ function getSignupErrorMsg(row, user) {
   return msg;
 }
 
-function createAndReturn(db, res, accInput) {
+function createAndReturn(db, res, userInput) {
 
-  var addUserCmd = getAddUserCmdQuery(new Date(), accInput)
-    , getUserQuery = getUserByUsernameQuery(accInput.username.toLowerCase())
+  var addUserCmd = getAddUserCmdQuery(new Date(), userInput)
+    , getUserQuery = getUserByUsernameQuery(userInput.username.toLowerCase())
     ;
 
   db.query(addUserCmd.text, addUserCmd.values, 
@@ -124,19 +124,19 @@ function createAndReturn(db, res, accInput) {
 rMan
   .add({
     method: 'post',
-    route: '/api/accounts/create',
+    route: '/api/users',
     handler: function (req, res, next) {
 
       // takes: { username: '', password: '', email: '' }
 
-      var accInput = req.body
+      var userInput = req.body
         , newUser
         , existsQuery
         , db
         ;
 
-      newUser = _.reduce(userProto, function (result, v, key) {
-        var value = accInput[key];
+      newUser = _.reduce(userModel, function (result, v, key) {
+        var value = userInput[key];
 
         if (_.isUndefined(value)) return result;
 
@@ -145,7 +145,7 @@ rMan
       }, { })
 
       existsQuery = getUserByUsernameOrEmailQuery(
-        accInput.username, accInput.email
+        userInput.username, userInput.email
       );
 
       db = mysql.createConnection(appSettings.connectionStrings.sql.users);
@@ -181,7 +181,7 @@ rMan
   })
   .add({
     method: 'post',
-    route: 'api/accounts/authenticate',
+    route: 'api/users/authenticate',
     handler: function (req, res, next) { 
 
       // takes: { username: '', password: '' }
