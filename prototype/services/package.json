@@ -7,8 +7,8 @@
         "restify": "2.6.x",
         "lodash": "2.4.x",
         "sql": "0.35.x",
-        "mysql": "2.0.1",
-        "node-neo4j": "2.0.0-RC4"
+        "mysql": "2.0.x",
+        "seraph": "0.9.x"
     },
     "devDependencies": {
 
