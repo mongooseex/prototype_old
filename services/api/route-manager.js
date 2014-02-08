@@ -19,7 +19,7 @@ function activateRoutes(routeList, restifyServer) {
 				restifyServer.put(r.route, r.handler);
 				break;
 			case 'delete': 
-				restifyServer.delete(r.route, r.handler)
+				restifyServer['delete'](r.route, r.handler)
 				break;
 			default:
 				throw new Error('unsupported method specified');
