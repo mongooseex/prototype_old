@@ -10,3 +10,6 @@
 
 # services
 prototype/services/node_modules/*
+
+#mac
+.DS_Store
