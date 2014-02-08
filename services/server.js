@@ -2,6 +2,7 @@
 var restify = require('restify')
 	, exampleApi = require('./api/example-api')
   , usersApi = require('./api/users-api')
+  , eventsApi = require('./api/events-api')
   ;
 
 var server = restify.createServer({
@@ -15,6 +16,6 @@ server.use(restify.bodyParser());
 // active routes
 exampleApi.activate(server);
 usersApi.activate(server);
-
+eventsApi.activate(server);
 
 server.listen(8888);
