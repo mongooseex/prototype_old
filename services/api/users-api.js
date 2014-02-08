@@ -185,7 +185,7 @@ routes
   })
   .add({
     method: 'post',
-    route: 'api/users/auth',
+    route: 'api/users/authenticate',
     handler: function (req, res, next) { 
 
       // takes: { username: '', password: '' }
