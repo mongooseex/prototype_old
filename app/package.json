@@ -1,0 +1,12 @@
+{
+    "name": "mongoosex",
+    "description": "mongoosex prototype",
+    "author": "Jeffrey Taylor <jeff@thetaylors.com>",
+    "version": "0.0.1",
+    "dependencies": {
+        "connect": "1.8.5",
+        "express": "2.5.2",
+        "socket.io": "0.8.7"
+    },
+    "engine": "node >= 0.6.6"
+}
