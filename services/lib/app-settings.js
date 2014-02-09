@@ -7,6 +7,10 @@ var connStrings = { }
 connStrings = {
   sql: {
     users: 'mysql://root:root@localhost/mongoosex'
+  },
+  neo4j: {
+    events: 'http://mx-sandbox:864O3dzgEkLdy7NO0AFH' + '@' +
+      'mxsandbox.sb01.stations.graphenedb.com:24789'
   }
 }; 
 
