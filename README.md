@@ -1,14 +1,14 @@
 # MongooseX Prototype
 
 ```
-#Do
+Do
 
 - Observe the 80 character line limit
 
 ```
 
 ```
-#Dont
+Dont
 
 - Murder prostitutes
 - Ever, ever, ever, ever, ever, ever use XML
