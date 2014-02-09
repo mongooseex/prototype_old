@@ -2,10 +2,12 @@
 var connect = require('connect')
     , express = require('express')
     , io = require('socket.io')
+    , path = require('path')
     , port = (process.env.PORT || 8080);
 
 //Setup Express
 var server = express.createServer();
+
 server.configure(function(){
     server.set('views', __dirname + '/views');
     server.set('view options', { layout: false });
@@ -25,6 +27,7 @@ server.configure(function(){
     server.use(express.session({ secret: "SECRETshhhhhhhhh!"}));
     server.use(connect.static(__dirname + '/static'));
     server.use(server.router);
+
 });
 
 //setup the errors
@@ -69,6 +72,7 @@ io.sockets.on('connection', function(socket){
 
 
 server.get('/', function(req,res){
+
     res.render('index.html', {
         locals : {
             title : 'mongoosex'
@@ -77,34 +81,11 @@ server.get('/', function(req,res){
             ,analyticssiteid: 'XXXXXXX'
         }
     });
+
 });
 
-
-
-server.get('/register', function(req,res){
-    res.render('register.html', {
-        locals : {
-            title : 'mongoosex'
-            ,description: 'mongoosex'
-            ,author: 'mongoosex'
-            ,analyticssiteid: 'XXXXXXX'
-        }
-    });
-});
-
-server.post('/register', function(req,res){
-
-    console.log(req.body);
-
-    res.render('register.html', {
-        locals : {
-            title : 'mongoosex'
-            ,description: 'mongoosex'
-            ,author: 'mongoosex'
-            ,analyticssiteid: 'XXXXXXX'
-        }
-    });
-});
+// api endpoinds
+require('./api/users')(server);
 
 
 //A Route for Creating a 500 Error
