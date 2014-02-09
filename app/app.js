@@ -92,6 +92,20 @@ server.get('/register', function(req,res){
     });
 });
 
+server.post('/register', function(req,res){
+
+    console.log(req.body);
+
+    res.render('register.html', {
+        locals : {
+            title : 'mongoosex'
+            ,description: 'mongoosex'
+            ,author: 'mongoosex'
+            ,analyticssiteid: 'XXXXXXX'
+        }
+    });
+});
+
 
 //A Route for Creating a 500 Error
 server.get('/500', function(req, res){
@@ -110,4 +124,4 @@ function NotFound(msg){
 }
 
 
-console.log('Listening on http://0.0.0.0:' + port );
+console.log('Listening on http://localhost' + port );
