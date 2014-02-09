@@ -1,24 +1,29 @@
 
 var appSettings = require('../lib/app-settings')
+  , eventsConnectionString = appSettings.connectionStrings.neo4j.events
   , routes = require('./route-manager').createManager()
   , url = require('url')
-  , graphDb = require('seraph')
+  , graphDb = require('seraph')(createSeraphConnObj(eventsConnectionString))
   ;
 
-function createSeraphConnectionObj(endpoint) {
-  var parsedUrl = url.parseUrl(endpoint)
-    , urlHost = parsedUrl.protocol + '//' + parsedUrl.host
+function createSeraphConnObj(endpoint) {
+  var parsedUrl = url.parse(endpoint)
+    , urlProto = parsedUrl.protocol
+    , urlAuth = parsedUrl.auth
+    , urlHost = parsedUrl.host
     , urlPath = parsedUrl.pathname
+    , connObj
     ;
 
-  return {
-    server: urlHost,
-    endpoint: urlPath
-  };
+  connObj = (urlPath.length > 1)
+    ? { server: urlProto + '//' + urlAuth + urlHost, endpoint: urlPath }
+    : endpoint;
+
+  return connObj;
 }
 
 
-// todo: refactor, duplicated (almmost)
+// todo: refactor, duplicated (almost)
 function completeRequest(res, code, desc, cont) {
   res.send(code, {
     description: desc,
@@ -34,7 +39,12 @@ routes
       var eventInput = req.body
         ;
 
-      // temporary: echo back submitted input
+      // temporary: echo back submitted input + interesting data
+
+      eventInput.connectionData = {
+        raw: eventsConnectionString,
+        obj: createSeraphConnObj(eventsConnectionString)
+      };
 
       completeRequest(res, 201, 'created', eventInput);
       return next();
