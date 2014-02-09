@@ -10,16 +10,7 @@ var server = express.createServer();
 server.configure(function(){
     server.set('views', __dirname + '/views');
     server.set('view options', { layout: false });
-
-    // temporary -- using .html instead of ejs or jade.
-    server.register('.html', {
-        compile: function(str, options){
-            return function(locals){
-                return str;
-            };
-        }
-    });
-
+    server.register('.html', { compile: compilehtml });
     server.use(connect.bodyParser());
     server.use(express.cookieParser());
     server.use(express.session({ secret: "SECRETshhhhhhhhh!"}));
@@ -40,5 +31,14 @@ require('./routes/users')(server);
 require('./routes/errors')(server); // errors should be the last in this list (contains catchall routes).
 
 
+///////////////////////////////////////////
+//          temp html module             //
+///////////////////////////////////////////
+
+function compilehtml(str, options){
+    return function(locals){
+        return str;
+    };
+};
 
 console.log('Listening on http://localhost' + port );

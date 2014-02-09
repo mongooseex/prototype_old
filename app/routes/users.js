@@ -1,9 +1,9 @@
 
 
-var users = function (app) {
+var users = function (server) {
 
-    app.get('/users/register', returnPage);
-    app.post('/users/register',logInfo, returnPage);
+    server.get('/users/register', returnPage);
+    server.post('/users/register',logInfo, returnPage);
 
 };
 
