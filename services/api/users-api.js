@@ -1,11 +1,14 @@
 
 var appSettings = require('../lib/app-settings')
   , routes = require('./route-manager').createManager()
+  , url = require('url')
   , users = require('../lib/users/user-model').table
   , userModel = require('../lib/users/user-model').model
   , mysql = require('mysql')
   , eventsConnectionString = appSettings.connectionStrings.neo4j.events
   , graphDb = require('seraph')(createSeraphConnObj(eventsConnectionString))
+  , graphModel = require('seraph-model')
+  , Profile = graphModel(graphDb, 'profile')
   , _ = require('lodash')
   ;
 
@@ -69,6 +72,22 @@ function getUserByUsernameOrEmailQuery(username, email) {
 // api heplers
 // -------------
 
+function createSeraphConnObj(endpoint) {
+  var parsedUrl = url.parse(endpoint)
+    , urlProto = parsedUrl.protocol
+    , urlAuth = parsedUrl.auth
+    , urlHost = parsedUrl.host
+    , urlPath = parsedUrl.pathname
+    , connObj
+    ;
+
+  connObj = (urlPath.length > 1)
+    ? { server: urlProto + '//' + urlAuth + urlHost, endpoint: urlPath }
+    : endpoint;
+
+  return connObj;
+}
+
 function completeRequest(db, res, code, desc, cont) {
   res.send(code, {
     description: desc,
@@ -117,14 +136,18 @@ function createAndReturn(db, res, userInput) {
           graphDb.save({ username: userInput.username.toLowerCase() },
             'profile', function (err, node) {
 
-            });
-          
-          var result = rows[0];
-          result.isVerified = (result.isVerified.readInt8(0) == 0) 
-            ? false 
-            : true;  
+              if (err) {
+                completeRequest(db, res, 500, 'error', err);
+                return;
+              }
 
-          completeRequest(db, res, 201, 'created', result);
+              var result = rows[0];
+              result.isVerified = (result.isVerified.readInt8(0) == 0) 
+                ? false 
+                : true;  
+
+              completeRequest(db, res, 201, 'created', result);
+            });
         });            
     });  
 }
