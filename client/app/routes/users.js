@@ -4,16 +4,14 @@ var usersClient = require('./../lib/clients/users-client')
 
 var users = function (server) {
 
-    server.get('/users/register', returnPage);
-    server.post('/users/register',makeRequest, returnPage);
+    server.get('/users/register', returnRegister);
+    server.post('/users/register',register, returnRegister);
+    server.get('/users/login', returnLogin)
 
 };
 
 
-var makeRequest = function (req, res, next) {
-
-    console.log('make request');
-    console.log(req.body);
+var register = function (req, res, next) {
 
     usersClient.register(req.body);
 
@@ -21,9 +19,22 @@ var makeRequest = function (req, res, next) {
 
 };
 
-var returnPage = function (req, res, next) {
+var returnRegister = function (req, res, next) {
 
     res.render('register.html', {
+        locals : {
+            title : 'mongoosex'
+            ,description: 'mongoosex'
+            ,author: 'mongoosex'
+            ,analyticssiteid: 'XXXXXXX'
+        }
+    });
+
+};
+
+var returnLogin = function (req, res, next) {
+
+    res.render('login.html', {
         locals : {
             title : 'mongoosex'
             ,description: 'mongoosex'
