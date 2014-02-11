@@ -223,9 +223,6 @@ routes
 
       // takes: { username: '', password: '' }
 
-      // FOR PROTOTYPE JUST USE BASIC HTTP AUTH
-      completeRequest(db, res, 410, 'discontinued', 'use basic http auth');
-
       var getUserQuery
         , db
         , credentials = req.body
