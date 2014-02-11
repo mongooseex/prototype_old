@@ -4,6 +4,8 @@ var appSettings = require('../lib/app-settings')
   , users = require('../lib/users/user-model').table
   , userModel = require('../lib/users/user-model').model
   , mysql = require('mysql')
+  , eventsConnectionString = appSettings.connectionStrings.neo4j.events
+  , graphDb = require('seraph')(createSeraphConnObj(eventsConnectionString))
   , _ = require('lodash')
   ;
 
@@ -106,11 +108,17 @@ function createAndReturn(db, res, userInput) {
       db.query(getUserQuery.text, getUserQuery.values,
         function execQuery (err, rows) {
 
+          
           if (err) {
             completeRequest(db, res, 500, 'error', err);
             return;
           }    
 
+          graphDb.save({ username: userInput.username.toLowerCase() },
+            'profile', function (err, node) {
+
+            });
+          
           var result = rows[0];
           result.isVerified = (result.isVerified.readInt8(0) == 0) 
             ? false 
@@ -189,6 +197,9 @@ routes
     handler: function (req, res, next) { 
 
       // takes: { username: '', password: '' }
+
+      // FOR PROTOTYPE JUST USE BASIC HTTP AUTH
+      completeRequest(db, res, 410, 'discontinued', 'use basic http auth');
 
       var getUserQuery
         , db

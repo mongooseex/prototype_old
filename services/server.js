@@ -12,6 +12,7 @@ var server = restify.createServer({
 
 // setup server
 server.use(restify.bodyParser());
+server.use(restify.authorizationParser());
 
 // active routes
 exampleApi.activate(server);

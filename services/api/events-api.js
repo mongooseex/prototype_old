@@ -1,9 +1,11 @@
 
 var appSettings = require('../lib/app-settings')
-  , eventsConnectionString = appSettings.connectionStrings.neo4j.events
-  , routes = require('./route-manager').createManager()
   , url = require('url')
+  , eventsConnectionString = appSettings.connectionStrings.neo4j.events
   , graphDb = require('seraph')(createSeraphConnObj(eventsConnectionString))
+  , mysql = require('mysql')
+  , users = require('../lib/users/user-model').table    
+  , routes = require('./route-manager').createManager()
   ;
 
 function createSeraphConnObj(endpoint) {
@@ -31,6 +33,20 @@ function completeRequest(res, code, desc, cont) {
   });
 }
 
+// todo: refactored, duplicated
+function getUserByUsernameQuery(username, password) {
+  var q = users
+    .select(users.id, users.username, users.email, users.isVerified)
+    .from(users)
+    .where(users.username.equals(username.toLowerCase()));
+
+    if (password) {
+      q.and(users.password.equals(password));
+    }
+
+    return q.toQuery();  
+}
+
 routes
   .add({
     method: 'post',
@@ -52,3 +68,4 @@ routes
   });
 
   exports.activate = routes.activate;
+  
