@@ -163,7 +163,7 @@ routes
     method: 'post',
     route: '/api/users',
     handler: function (req, res, next) {
-
+        
       // takes: { username: '', password: '', email: '' }
 
       var userInput = req.body
