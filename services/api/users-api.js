@@ -126,28 +126,30 @@ function createAndReturn(db, res, userInput) {
 
       db.query(getUserQuery.text, getUserQuery.values,
         function execQuery (err, rows) {
-
+          
+          var p = {
+            username: userInput.username.toLowerCase()
+          }
           
           if (err) {
             completeRequest(db, res, 500, 'error', err);
             return;
           }    
 
-          graphDb.save({ username: userInput.username.toLowerCase() },
-            'profile', function (err, node) {
+          Profile.save(p, function (err, node) {
 
-              if (err) {
-                completeRequest(db, res, 500, 'error', err);
-                return;
-              }
+            if (err) {
+              completeRequest(db, res, 500, 'error', err);
+              return;
+            }
 
-              var result = rows[0];
-              result.isVerified = (result.isVerified.readInt8(0) == 0) 
-                ? false 
-                : true;  
+            var result = rows[0];
+            result.isVerified = (result.isVerified.readInt8(0) == 0) 
+              ? false 
+              : true;  
 
-              completeRequest(db, res, 201, 'created', result);
-            });
+            completeRequest(db, res, 201, 'created', result);
+          });
         });            
     });  
 }
