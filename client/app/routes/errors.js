@@ -12,6 +12,7 @@ var errors = function (server) {
                 ,analyticssiteid: 'XXXXXXX'
             },status: 404 });
         } else {
+            console.log(err);
             res.render('500.html', { locals: {
                 title : 'The Server Encountered an Error'
                 ,description: ''
