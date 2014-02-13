@@ -1,14 +1,16 @@
 
 var appSettings = require('../lib/app-settings')
   , url = require('url')
-  , eventsConnectionString = appSettings.connectionStrings.neo4j.events
-  , graphDb = require('seraph')(createSeraphConnObj(eventsConnectionString))
-  , graphModel = require('seraph-model')
-  , Event = graphModel(graphDb, 'event')
-  , Profile = graphModel(graphDb, 'profile')
+  , neoConnectionString = appSettings.connectionStrings.neo4j.main
+  , graphDb = require('seraph')(createSeraphConnObj(neoConnectionString))
+  , Profile = require('../lib/profiles/profile-model.js')  
+  , profileRepo = Profile.build(graphDb)
+  , Event = require('../lib/events/event-model.js')  
+  , eventRepo = Event.build(graphDb)
   , mysql = require('mysql')
   , users = require('../lib/users/user-model').table    
   , routes = require('./route-manager').createManager()
+  , _ = require('lodash')
   ;
 
 // todo: refactor, duplicated (sorta)
@@ -61,6 +63,7 @@ routes
     route: '/api/events',
     handler: function (req, res, next) {
       var eventInput = req.body
+        , newEvent
         , username = req.username
         , getUserQuery = getUserByUsernameQuery(username.toLowerCase())
         , db
@@ -71,7 +74,16 @@ routes
         return;
       }
 
-      db = mysql.createConnection(appSettings.connectionStrings.sql.users);
+      newEvent = _.reduce(Event.model, function (result, v, k) {
+        var value = eventInput[k];
+
+        if (_.isUndefined(value)) return result;
+
+        result[k] = value;
+        return result;
+      }, { });
+
+      db = mysql.createConnection(appSettings.connectionStrings.sql.main);
       db.connect(function connectDb(err) {
         
         if (err) {
@@ -79,27 +91,63 @@ routes
           return;
         }
 
-        db.query(getUserQuery.text, getUserQuery.values, 
-          function execCount(err, rows) { 
+        db.query(getUserQuery.text, getUserQuery.values, function (err, rows) { 
+
+          if (err) {
+            completeRequest(db, res, 500, 'error', err);
+            return;
+          }
+
+          if (!rows || rows.length === 0) {
+            completeRequest(db, res, 400, 'error', 'user not found');
+          }
+
+          profileRepo.where({ username: username }, function (err, nodes) {
 
             if (err) {
               completeRequest(db, res, 500, 'error', err);
               return;
             }
 
-            if (!rows || rows.length === 0) {
+            if (!nodes && nodes.length === 0) {
               completeRequest(db, res, 400, 'error', 'user not found');
+              return;
             }
 
-            // temporary: echo back submitted input + interesting data
+            var userProfile = nodes[0];
+            
+            eventRepo.save(newEvent, function (err, node) {
+              
+              if (err) {
+                completeRequest(db, res, 500, 'error', err);
+                return;
+              }
 
-            eventInput.connectionData = {
-              raw: eventsConnectionString,
-              obj: createSeraphConnObj(eventsConnectionString)
-            };
+              if (!node) {
+                completeRequest(
+                  db, res, 500, 'error', 'problem creating event node');
+                return;
+              }
 
-            completeRequest(db, res, 201, 'created', eventInput);            
-          });
+              graphDb.relate(node.id, 'attending', userProfile.id, 
+                { role: 'owner' }, function (err, relationship) {
+
+                  if (err) {
+                    completeRequest(db, res, 500, 'error', err);
+                    return;
+                  }
+
+                  if (!relationship) {
+                    completeRequest(
+                      db, res, 500, 'error', 'problem creating event node');
+                    return;
+                  }
+
+                  completeRequest(db, res, 201, 'created', newEvent); 
+              });
+            }); 
+          });   
+        });
       });
 
       return next();
