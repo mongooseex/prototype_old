@@ -5,10 +5,10 @@ var appSettings = require('../lib/app-settings')
   , users = require('../lib/users/user-model').table
   , userModel = require('../lib/users/user-model').model
   , mysql = require('mysql')
-  , eventsConnectionString = appSettings.connectionStrings.neo4j.events
-  , graphDb = require('seraph')(createSeraphConnObj(eventsConnectionString))
-  , graphModel = require('seraph-model')
-  , Profile = graphModel(graphDb, 'profile')
+  , neoConnectionString = appSettings.connectionStrings.neo4j.main
+  , graphDb = require('seraph')(createSeraphConnObj(neoConnectionString))
+  , Profile = require('../lib/profiles/profile-model.js')
+  , profileRepo = Profile.build(graphDb)
   , _ = require('lodash')
   ;
 
@@ -136,7 +136,7 @@ function createAndReturn(db, res, userInput) {
             return;
           }    
 
-          Profile.save(p, function (err, node) {
+          profileRepo.save(p, function (err, node) {
 
             if (err) {
               completeRequest(db, res, 500, 'error', err);
@@ -185,7 +185,7 @@ routes
         userInput.username, userInput.email
       );
 
-      db = mysql.createConnection(appSettings.connectionStrings.sql.users);
+      db = mysql.createConnection(appSettings.connectionStrings.sql.main);
       db.connect(function connectDb(err) {
         
         if (err) {
@@ -232,7 +232,7 @@ routes
         credentials.username, credentials.password
       );
 
-      db = mysql.createConnection(appSettings.connectionStrings.sql.users);
+      db = mysql.createConnection(appSettings.connectionStrings.sql.main);
       db.connect(function connectDb(err) {
 
         if (err) {
@@ -277,7 +277,7 @@ routes
         , user
         ;
 
-      db = mysql.createConnection(appSettings.connectionStrings.sql.users);
+      db = mysql.createConnection(appSettings.connectionStrings.sql.main);
       db.connect(function connectDb(err) {
 
         if (err) {
