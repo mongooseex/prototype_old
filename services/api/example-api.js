@@ -3,9 +3,10 @@ var routeMan = require('./route-manager').createManager()
 	;
 
 routeMan
+	.prefix('/api/example')
 	.add({
 		method: 'get',
-		route: '/api/example/hello/:name',
+		suffix: '/hello/:name',
 		handler: function exampleHelloGetHandler(req, res, next) {
 			res.send('hello, ' + req.params.name);
 			return next();
@@ -13,7 +14,7 @@ routeMan
 	})
 	.add({
 		method: 'post',
-		route: '/api/example/sayfrom/:from',
+		suffix: '/sayfrom/:from',
 		handler: function exampleSayFromPostHandler(req, res, next) {
 			var responseText = req.params.from + ': ' + req.body;
 			res.send(responseText);
