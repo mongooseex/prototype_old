@@ -49,8 +49,6 @@ exports.createManager = function createManager() {
 				r.suffix = '';
 			}
 
-			// r.suffix = '';
-
 			addRoute(routeList, r);
 			return this;
 		},

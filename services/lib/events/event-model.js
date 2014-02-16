@@ -6,10 +6,12 @@ var modelBuilder = require('../data/model-builder')
 
 module.exports = modelBuilder.createModelNeo([
     'title',
+    'description',
     'location',
+    'createdDate',
     'startDate',
     'endDate',
     'isPrivate'
   ],
-  'event'
+  'Event'
 );

@@ -1,10 +1,9 @@
-
 var modelBuilder = require('../data/model-builder')
   ;
 
 // exports
 
-module.exports = modelBuilder.createModelSql([
+module.exports = modelBuilder.createModelNeo([
     'id',
     'username',
     'password',
@@ -14,5 +13,5 @@ module.exports = modelBuilder.createModelSql([
     'verifiedDate',
     'isVerified'  
   ],
-  'users'
+  'User'
 );

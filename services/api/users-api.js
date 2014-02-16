@@ -2,75 +2,18 @@
 var appSettings = require('../lib/app-settings')
   , routes = require('./route-manager').createManager()
   , url = require('url')
-  , users = require('../lib/users/user-model').table
-  , userModel = require('../lib/users/user-model').model
-  , mysql = require('mysql')
   , neoConnectionString = appSettings.connectionStrings.neo4j.main
   , graphDb = require('seraph')(createSeraphConnObj(neoConnectionString))
-  , Profile = require('../lib/profiles/profile-model.js')
+  , User = require('../lib/users/user-model')
+  , userRepo = User.build(graphDb)
+  , Profile = require('../lib/profiles/profile-model')
   , profileRepo = Profile.build(graphDb)
   , _ = require('lodash')
   ;
 
-// -----------------
-// query creation
-// -----------------
-
-function getAddUserCmdQuery(currentDate, acc) {
-  var q = users
-    .insert(
-      users.username.value(acc.username.toLowerCase()),
-      users.password.value(acc.password),
-      users.email.value(acc.email.toLowerCase()),
-      users.signupDate.value(currentDate),
-      users.lastLoginDate.value(currentDate),
-      users.isVerified.value(false)
-    )
-    .toQuery();  
-
-    return q;
-}
-
-function getUserByIdQuery(id) {
-  var q = users
-    .select(users.id, users.username, users.email, users.isVerified)
-    .from(users)
-    .where(users.id.equals(id))
-    .toQuery();
-
-    return q;
-}
-
-function getUserByUsernameQuery(username, password) {
-  var q = users
-    .select(users.id, users.username, users.email, users.isVerified)
-    .from(users)
-    .where(users.username.equals(username.toLowerCase()));
-
-    if (password) {
-      q.and(users.password.equals(password));
-    }
-
-    return q.toQuery();  
-}
-
-function getUserByUsernameOrEmailQuery(username, email) {
-  var q = users.select(users.username, users.email)
-    .from(users)
-    .where(
-      users.username.equals(username.toLowerCase())
-    )
-    .or (
-      users.email.equals(email.toLowerCase())
-    )
-    .toQuery();
-
-  return q;
-}
-
-// -------------
-// api heplers
-// -------------
+// ---------
+// helpers
+// ---------
 
 function createSeraphConnObj(endpoint) {
   var parsedUrl = url.parse(endpoint)
@@ -88,224 +31,153 @@ function createSeraphConnObj(endpoint) {
   return connObj;
 }
 
-function completeRequest(db, res, code, desc, cont) {
+// --------------
+// --------------
+
+function completeRequest(res, code, desc, cont) {
   res.send(code, {
     description: desc,
     content: cont
   });
-  db.end();
 }
 
-function getSignupErrorMsg(row, user) {
-  var u = row.username.toLowerCase()
-    , e = row.email.toLowerCase()
-    , msg = 'unknown conflict'
+// --------------
+// --------------
+
+function makeUserFromInputObj(input) {
+
+  var output
+    , currentDate = new Date()
     ;
 
-  if (u === user.username.toLowerCase()) {
-    msg = 'this username already exists';
-  } else if (e === user.email.toLowerCase()) {
-    msg = 'a user already had this email account';
-  }  
+  output = _.reduce(User.model, function (result, v, key) {
+    var value = input[key];
 
-  return msg;
+    if (_.isUndefined(value)) return result;
+
+    result[key] = value;   
+    return result;
+  }, { });
+
+  output.username = output.username.toLowerCase();
+  output.email = output.email.toLowerCase();
+  output.signupDate = currentDate;
+  output.lastLoginDate = currentDate;
+  output.isVerified = false;
+
+  return output;
 }
 
-function createAndReturn(db, res, userInput) {
+// --------------
+// --------------
 
-  var addUserCmd = getAddUserCmdQuery(new Date(), userInput)
-    , getUserQuery = getUserByUsernameQuery(userInput.username.toLowerCase())
+function alreadyExistsMsg(userInput, userNodes) {
+
+  var existsMsg = ''
     ;
 
-  db.query(addUserCmd.text, addUserCmd.values, 
-    function execInsert (err) {
-      if (err) {
-        completeRequest(db, res, 500, 'error', err);
-        return;
-      }
+  if (_.some(userNodes, { username: userInput.username })) {
+    existsMsg = 'username';
+  }
+  if (_.some(userNodes, { email: userInput.email })) {
+    if (existsMsg.length > 0) {
+      existsMsg += ' and ';
+    }
+    existsMsg += 'email';
+  }
 
-      db.query(getUserQuery.text, getUserQuery.values,
-        function execQuery (err, rows) {
-          
-          var p = {
-            username: userInput.username.toLowerCase()
-          }
-          
-          if (err) {
-            completeRequest(db, res, 500, 'error', err);
-            return;
-          }    
-
-          profileRepo.save(p, function (err, node) {
-
-            if (err) {
-              completeRequest(db, res, 500, 'error', err);
-              return;
-            }
-
-            var result = rows[0];
-            result.isVerified = (result.isVerified.readInt8(0) == 0) 
-              ? false 
-              : true;  
-
-            completeRequest(db, res, 201, 'created', result);
-          });
-        });            
-    });  
+  return existsMsg + ' already registered';
 }
 
-// ---------
+// -------
 // routes
-// ---------
+// -------
 
 routes
+  .prefix('/api/users')
   .add({
     method: 'post',
-    route: '/api/users',
-    handler: function (req, res, next) {
+    handler:  function (req, res, next) {
 
-      // takes: { username: '', password: '', email: '' }
+      // input = {
+      //   username: '',
+      //   password: '',
+      //   email: ''
+      // };
 
-      var userInput = req.body
-        , newUser
-        , existsQuery
-        , db
+      var user = makeUserFromInputObj(req.body)
+        , predicate
         ;
 
-      newUser = _.reduce(userModel, function (result, v, key) {
-        var value = userInput[key];
+      predicate = { username: user.username, email: user.email };
+      userRepo.where(predicate, { any: true }, 
+        function whereUserExists (err, nodes) {
 
-        if (_.isUndefined(value)) return result;
+          var existsMsg = ''
+            , badSaveMsg = ''
+            ;
 
-        result[key] = value;   
-        return result;
-      }, { })
+          if (err) {
+            completeRequest(res, 500, 'error', err);
+            return;
+          }  
 
-      existsQuery = getUserByUsernameOrEmailQuery(
-        userInput.username, userInput.email
-      );
+          if (nodes && nodes.length > 0) {
+            existsMsg = alreadyExistsMsg(user, nodes);
+            completeRequest(res, 409, 'conflict', existsMsg);
+            return;
+          }      
 
-      db = mysql.createConnection(appSettings.connectionStrings.sql.main);
-      db.connect(function connectDb(err) {
-        
-        if (err) {
-          completeRequest(db, res, 500, 'error', err);
-          return;
-        }
-
-        db.query(existsQuery.text, existsQuery.values, 
-          function execCount(err, rows) {
+          userRepo.save(user, function saveNewUser (err, savedUser) {
 
             if (err) {
-              completeRequest(db, res, 500, 'error', err);
+              completeRequest(res, 500, 'error', err);
               return;
             }
 
-            if (rows && rows.length > 0) {
-              completeRequest(
-                db, res, 409, 'conflict', getSignupErrorMsg(rows[0], newUser)
-              );
+            if (!savedUser) {
+              badSaveMsg = 'user creation could not be validated';
+              completeRequest(res, 500, 'error', badSaveMsg);
               return;
             }
 
-            createAndReturn(db, res, newUser);            
+            completeRequest(res, 201, 'created', savedUser);
           });
-
-      });
+        });
 
       return next();
     }
   })
   .add({
     method: 'post',
-    route: 'api/users/auth',
-    handler: function (req, res, next) { 
-
-      // takes: { username: '', password: '' }
-
-      var getUserQuery
-        , db
-        , credentials = req.body
-        ; 
-
-      getUserQuery = getUserByUsernameQuery(
-        credentials.username, credentials.password
-      );
-
-      db = mysql.createConnection(appSettings.connectionStrings.sql.main);
-      db.connect(function connectDb(err) {
-
-        if (err) {
-          completeRequest(db, res, 500, 'error', err);
-          return;
-        }
-
-        db.query(getUserQuery.text, getUserQuery.values,
-          function getUserQuery(err, rows) {
-
-            if (err) {
-              completeRequest(db, res, 500, 'error', err);
-              return;
-            }
-
-            if (!rows || rows.length === 0) {
-              completeRequest(db, res, 401, 'unauthorized', null);
-              return;
-            }
-
-            var result = rows[0];
-            result.isVerified = (result.isVerified.readInt8(0) === 0) 
-              ? false 
-              : true;  
-
-            completeRequest(db, res, 200, 'authorized', result);
-            return;
-          });
-      });               
-  
-      return next();
-    }
-  })
-  .add({
-    method: 'get',
-    route: 'api/users/:id',
+    suffix: '/auth',
     handler: function (req, res, next) {
 
-      // takes id in route
-
-      var getUserQuery = getUserByIdQuery(req.params.id)
-        , user
+      // input = {
+      //   username: '',
+      //   password: ''
+      // };
+    
+      var input = req.body
         ;
 
-      db = mysql.createConnection(appSettings.connectionStrings.sql.main);
-      db.connect(function connectDb(err) {
+      userRepo.where(input, function whereUserPWMatch (err, nodes) {
+
+        var user
+          ;
 
         if (err) {
-          completeRequest(db, res, 500, 'error', err);
+          completeRequest(res, 500, 'error', err);
+          return;
+        }  
+
+        if (!nodes || nodes.length < 1) {
+          completeRequest(res, 401, 'unauthorized', null);
           return;
         }
 
-        db.query(getUserQuery.text, getUserQuery.values,
-          function getUserQuery(err, rows) {
-
-            if (err) {
-              completeRequest(db, res, 500, 'error', err);
-              return;
-            }
-
-            if (!rows || rows.length < 1) {
-              completeRequest(db, res, 404, 'user not found', null);
-              return;
-            }
-
-            user = rows[0];
-            user.isVerified = (user.isVerified.readInt8(0) === 0)
-              ? false
-              : true;
-
-            completeRequest(db, res, 200, 'user found', user);
-            return;
-          });
+        user = nodes[0];
+        completeRequest(res, 200, 'authorized', user);
       });
 
       return next();

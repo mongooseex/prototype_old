@@ -1,17 +1,19 @@
 
 var appSettings = require('../lib/app-settings')
+  , routes = require('./route-manager').createManager()
   , url = require('url')
   , neoConnectionString = appSettings.connectionStrings.neo4j.main
   , graphDb = require('seraph')(createSeraphConnObj(neoConnectionString))
-  , Profile = require('../lib/profiles/profile-model.js')  
-  , profileRepo = Profile.build(graphDb)
+  , User = require('../lib/users/user-model.js')  
+  , userRepo = User.build(graphDb)
   , Event = require('../lib/events/event-model.js')  
-  , eventRepo = Event.build(graphDb)
-  , mysql = require('mysql')
-  , users = require('../lib/users/user-model').table    
-  , routes = require('./route-manager').createManager()
+  , eventRepo = Event.build(graphDb) 
   , _ = require('lodash')
   ;
+
+// -------
+// helpers
+// -------
 
 // todo: refactor, duplicated (sorta)
 function createSeraphConnObj(endpoint) {
@@ -30,129 +32,121 @@ function createSeraphConnObj(endpoint) {
   return connObj;
 }
 
+// --------------
+// --------------
+
+function makeEventFromInputObj(input) {
+  var output
+    ;
+
+  output = _.reduce(Event.model, function (result, v, k) {
+    var value = input[k];
+
+    if (_.isUndefined(value)) return result;
+
+    result[k] = value;
+    return result;
+  }, { });
+
+  output.createDate = new Date();
+
+  return output;
+}
+
+// --------------
+// --------------
 
 // todo: refactor, duplicated
-function completeRequest(db, res, code, desc, cont) {
+function completeRequest(res, code, desc, cont) {
   res.send(code, {
     description: desc,
     content: cont
   });
-
-  if (db) {
-    db.end();
-  }
 }
 
-// todo: refactored, duplicated
-function getUserByUsernameQuery(username, password) {
-  var q = users
-    .select(users.id, users.username, users.email, users.isVerified)
-    .from(users)
-    .where(users.username.equals(username.toLowerCase()));
-
-    if (password) {
-      q.and(users.password.equals(password));
-    }
-
-    return q.toQuery();  
-}
+// -------
+// routes
+// -------
 
 routes
+  .prefix('/api/events')
   .add({
     method: 'post',
-    route: '/api/events',
-    handler: function (req, res, next) {
-      var eventInput = req.body
-        , newEvent
+    handler:  function (req, res, next) {
+
+      // input = {
+      //   title: '',
+      //   description: '',
+      //   location: '',
+      //   startDate: [Date],
+      //   endDate: [Date],
+      //   isPrivate: [true|false]
+      // };
+
+      var ev = makeEventFromInputObj(req.body)
         , username = req.username
-        , getUserQuery = getUserByUsernameQuery(username.toLowerCase())
-        , db
+        , user
+        , badSaveMsg
+        , badEventSaveMsg
         ;
 
       if (!username || username === 'anonymous') {
-        completeRequest(db, res, 400, 'error', 'missing username');
-        return;
+        completeRequest(res, 400, 'error', 'missing username');
+        return next();
       }
 
-      newEvent = _.reduce(Event.model, function (result, v, k) {
-        var value = eventInput[k];
+      userRepo.where({ username: username }, function (err, nodes) {
 
-        if (_.isUndefined(value)) return result;
-
-        result[k] = value;
-        return result;
-      }, { });
-
-      db = mysql.createConnection(appSettings.connectionStrings.sql.main);
-      db.connect(function connectDb(err) {
-        
         if (err) {
-          completeRequest(db, res, 500, 'error', err);
+          completeRequest(res, 500, 'error', err);
           return;
-        }
+        }  
 
-        db.query(getUserQuery.text, getUserQuery.values, function (err, rows) { 
+        if (!nodes || nodes.length === 0) {
+          completeRequest(res, 400, 'no matching user', null);
+          return;
+        }  
+
+        user = nodes[0];
+        eventRepo.save(ev, function (err, savedEvent) {
 
           if (err) {
-            completeRequest(db, res, 500, 'error', err);
+            completeRequest(res, 500, 'error', err);
             return;
           }
 
-          if (!rows || rows.length === 0) {
-            completeRequest(db, res, 400, 'error', 'user not found');
+          if (!savedEvent) {
+            badSaveMsg = 'event creation could not be validated';
+            completeRequest(res, 500, 'error', badSaveMsg);
+            return;
           }
 
-          profileRepo.where({ username: username }, function (err, nodes) {
+          graphDb.relate(user.id, 'participating', savedEvent.id, 
+            { as: 'owner' }, function (err, relationship) {
 
-            if (err) {
-              completeRequest(db, res, 500, 'error', err);
-              return;
-            }
-
-            if (!nodes && nodes.length === 0) {
-              completeRequest(db, res, 400, 'error', 'user not found');
-              return;
-            }
-
-            var userProfile = nodes[0];
-            
-            eventRepo.save(newEvent, function (err, node) {
-              
               if (err) {
-                completeRequest(db, res, 500, 'error', err);
+                completeRequest(res, 500, 'error', err);
                 return;
               }
 
-              if (!node) {
-                completeRequest(
-                  db, res, 500, 'error', 'problem creating event node');
+              if (!relationship) {
+                badEventSaveMsg = 'problem creating event node';
+                completeRequest(res, 500, 'error', badEventSaveMsg);
                 return;
               }
 
-              graphDb.relate(node.id, 'attending', userProfile.id, 
-                { role: 'owner' }, function (err, relationship) {
-
-                  if (err) {
-                    completeRequest(db, res, 500, 'error', err);
-                    return;
-                  }
-
-                  if (!relationship) {
-                    completeRequest(
-                      db, res, 500, 'error', 'problem creating event node');
-                    return;
-                  }
-
-                  completeRequest(db, res, 201, 'created', newEvent); 
-              });
-            }); 
-          });   
+              completeRequest(res, 201, 'created', savedEvent);
+            });        
         });
       });
 
       return next();
     }
   });
+
+  // -------
+  // exports
+  // -------
 
   exports.activate = routes.activate;
   
