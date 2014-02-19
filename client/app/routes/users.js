@@ -19,12 +19,17 @@ var register = function (req, res, next) {
 
     request.post(options, function (error, response,body){
 
-        if (!error && res.statusCode == 200) {
+        console.log(response);
+
+        if (!error && response.statusCode == 200) {
             res.render('register.ejs', {data : {message: "registration successful"}});
         }
         else {
             console.log('registration error');
-            res.render('register.ejs', {data : {message: "error registering"}});
+
+            var message = response.body.content || "error registering";
+
+            res.render('register.ejs', {data : {message: message}});
         }
 
     });
