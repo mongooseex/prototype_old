@@ -24,7 +24,7 @@ var register = function (req, res, next) {
         }
         else {
             console.log('registration error');
-            res.render('register.ejs', {data : {error: "error registering"}});
+            res.render('register.ejs', {data : {message: "error registering"}});
         }
 
     });
@@ -37,8 +37,6 @@ var login = function (req, res, next) {
     if (req.body.username == "" || req.body.password == "") {
         res.render('login.ejs', {data :{message: null, error: "please enter username / password"}});
     }
-
-    console.log(req.body);
 
     var options = {
         url: 'http://localhost:8888/api/users/auth',
