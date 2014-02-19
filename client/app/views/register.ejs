@@ -8,10 +8,16 @@
 <h1>Register</h1>
 
 
+<% if(data != null) { %>
+<div class="container">
+    <h1> <%= data.message %> </h1>
+</div>
+<% } %>
+
 <form name="register-form" method="POST">
 
     <label>username
-    <input name="username" type="text" />
+        <input name="username" type="text" />
     </label>
 
     <br />

@@ -3,7 +3,7 @@ var index = function (server) {
 
     server.get('/', function(req,res){
 
-        res.render('index.html', {
+        res.render('index.ejs', {
             locals : {
                 title : 'mongoosex'
                 ,description: 'mongoosex'

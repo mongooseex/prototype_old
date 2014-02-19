@@ -5,7 +5,7 @@ var errors = function (server) {
     //setup the errors
     server.error(function(err, req, res, next){
         if (err instanceof NotFound) {
-            res.render('404.html', { locals: {
+            res.render('404.ejs', { locals: {
                 title : '404 - Not Found'
                 ,description: ''
                 ,author: ''
@@ -13,7 +13,7 @@ var errors = function (server) {
             },status: 404 });
         } else {
             console.log(err);
-            res.render('500.html', { locals: {
+            res.render('500.ejs', { locals: {
                 title : 'The Server Encountered an Error'
                 ,description: ''
                 ,author: ''
