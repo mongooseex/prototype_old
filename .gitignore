@@ -15,3 +15,7 @@ app/node_modules
 
 # services
 services/node_modules/*
+
+# heroku
+Procfile
+
